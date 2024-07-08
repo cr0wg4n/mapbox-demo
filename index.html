@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>CanSat - 3D Map</title>
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <link
+      href="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.5.1/mapbox-gl.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+      const data = [
+        { gps: [-66.140293, -17.3884175], altitude: 2612.46 },
+        { gps: [-66.140307, -17.3882875], altitude: 2612.23 },
+        { gps: [-66.140255333, -17.388150833], altitude: 2615.95 },
+        { gps: [-66.140153833, -17.3879895], altitude: 2617.49 },
+        { gps: [-66.139978, -17.387897], altitude: 2626.66 },
+        { gps: [-66.1398205, -17.3878565], altitude: 2634.28 },
+        { gps: [-66.139633167, -17.387781833], altitude: 2643.93 },
+        { gps: [-66.138831833, -17.387258667], altitude: 2683.58 },
+        { gps: [-66.138650667, -17.387164167], altitude: 2694.66 },
+        { gps: [-66.1383135, -17.3869105], altitude: 2717.44 },
+        { gps: [-66.138288167, -17.386891], altitude: 2719.3 },
+        { gps: [-66.138189833, -17.386797333], altitude: 2725.74 },
+        { gps: [-66.137979667, -17.386544667], altitude: 2744.17 },
+        { gps: [-66.137888667, -17.386487], altitude: 2750.46 },
+        // {"gps":'-66.137947333,-17.386482333', "altitude": 2746.03},
+        // {"gps":'-66.137977833,-17.386533833', "altitude": 2743.5},
+        // {"gps":'-66.138036667,-17.386616667', "altitude": 2738.25},
+        // {"gps":'-66.138146333,-17.386729667', "altitude": 2728.25},
+        // {"gps":'-66.1381625,-17.3867525', "altitude": 2726.59},
+        // {"gps":'-66.138171167,-17.386760667', "altitude": 2726.5},
+        // {"gps":'-66.138246167,-17.386852', "altitude": 2719.34},
+        // {"gps":'-66.1384125,-17.386991167', "altitude": 2707.49},
+        // {"gps":'-66.138835667,-17.387243667', "altitude": 2680.67},
+        // {"gps":'-66.139500167,-17.387720667', "altitude": 2646.45},
+        // {"gps":'-66.139866333,-17.387880167', "altitude": 2628.36},
+        // {"gps":'-66.140254667,-17.388133333', "altitude": 2610.2},
+        // {"gps":'-66.140295,-17.38841', "altitude": 2606.57},
+        // {"gps":'-66.140303,-17.388435667', "altitude": 2606.71},
+        // {"gps":'-66.140302,-17.388442667', "altitude": 2606.54},
+      ];
+    
+      // Create your mapbox key and paste it here
+      mapboxgl.accessToken = 'KEY_NEEDED';
+
+      const cameraPitch = 0;
+      const cameraBearing = 30;
+      const elevation = 1600;
+      const center = [-66.1379205, -17.3864715];
+      const map = new mapboxgl.Map({
+        container: 'map',
+        zoom: 16,
+        center,
+        pitch: 90 - cameraPitch,
+        bearing: 120,
+        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        antialias: true,
+        renderWorldCopies: false,
+      });
+
+      map.on('style.load', () => {
+        map.addSource('mapbox-dem', {
+          type: 'raster-dem',
+          url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+          tileSize: 512,
+          maxzoom: 14,
+        });
+        map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+      });
+
+      map.on('load', () => {
+        data.forEach((item, index) => {
+          addBarChart(index, map, item['gps'], item['altitude']);
+        });
+        addLabels(map, data);
+      });
+
+      function getCoordinates(center, polygonRadius = 0.00009) {
+        return [
+          [center[0] - polygonRadius, center[1] - polygonRadius],
+          [center[0] + polygonRadius, center[1] - polygonRadius],
+          [center[0] + polygonRadius, center[1] + polygonRadius],
+          [center[0] - polygonRadius, center[1] + polygonRadius],
+          [center[0] - polygonRadius, center[1] - polygonRadius],
+        ];
+      }
+
+      function addBarChart(id, m, gps, altitude) {
+        const paint = {
+          'fill-extrusion-color': '#475bcc',
+          // 'fill-extrusion-height': altitude - 2612,
+          'fill-extrusion-height': 0,
+          'fill-extrusion-base': 0,
+          'fill-extrusion-opacity': 0.95,
+        };
+        map.addLayer({
+          id: `extrusion-${id}`,
+          type: 'fill-extrusion',
+          source: {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: {
+                    type: 'Polygon',
+                    coordinates: [[...getCoordinates(gps)]],
+                  },
+                },
+              ],
+            },
+          },
+          paint,
+        });
+      }
+
+      function addLabels(m, gpsData) {
+        const places = {
+          type: 'FeatureCollection',
+          features: [
+            ...gpsData.map((item) => {
+              return {
+                type: 'Feature',
+                properties: {
+                  description: String(item['altitude']),
+                  // icon: 'point',
+                },
+                geometry: {
+                  type: 'Point',
+                  coordinates: item['gps'],
+                },
+              };
+            }),
+          ],
+        };
+
+        m.addSource('places', {
+          type: 'geojson',
+          data: places,
+        });
+
+        m.addLayer({
+          id: 'poi-labels',
+          type: 'symbol',
+          source: 'places',
+          layout: {
+            'text-field': ['get', 'description'],
+            'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+            'text-radial-offset': 0.5,
+            'text-justify': 'auto',
+            'icon-image': ['get', 'icon'],
+          },
+          paint: {
+            "text-color": "#ffffff"
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
