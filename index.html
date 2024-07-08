@@ -63,15 +63,12 @@
       // Create your mapbox key and paste it here
       mapboxgl.accessToken = 'KEY_NEEDED';
 
-      const cameraPitch = 0;
-      const cameraBearing = 30;
-      const elevation = 1600;
       const center = [-66.1379205, -17.3864715];
       const map = new mapboxgl.Map({
         container: 'map',
         zoom: 16,
         center,
-        pitch: 90 - cameraPitch,
+        pitch: 90,
         bearing: 120,
         style: 'mapbox://styles/mapbox/satellite-streets-v12',
         antialias: true,
@@ -83,7 +80,7 @@
           type: 'raster-dem',
           url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
           tileSize: 512,
-          maxzoom: 14,
+          maxzoom: 10,
         });
         map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
       });
